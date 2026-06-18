@@ -1,0 +1,62 @@
+@page "/favorites"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject RecipeStateService StateService
+@inject ILogger<Favorites> Logger
+
+<h3>My Favorite Recipes</h3>
+
+@if (favorites == null)
+{
+    <p>Loading...</p>
+}
+else if (!favorites.Any())
+{
+    <p>You have no favorite recipes yet.</p>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        @foreach (var fav in favorites)
+        {
+            var recipe = fav.Recipe;
+            <div class="col">
+                <div class="card h-100">
+                    @if (!string.IsNullOrEmpty(recipe?.ImageUrl))
+                    {
+                        <img src="@recipe.ImageUrl" class="card-img-top" style="height: 200px; object-fit: cover;" />
+                    }
+                    <div class="card-body">
+                        <h5 class="card-title">@recipe?.Title</h5>
+                        <p class="card-text">@recipe?.Description</p>
+                        <small>⏱️ @recipe?.CookingTimeMinutes min</small>
+                    </div>
+                    <div class="card-footer">
+                        <a href="/recipes/@recipe?.Id" class="btn btn-primary btn-sm">View</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Favorite>? favorites;
+    private const int CurrentUserId = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            using var db = await DbFactory.CreateDbContextAsync();
+            favorites = await db.Favorites
+                .Include(f => f.Recipe)
+                .Where(f => f.UserId == CurrentUserId)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading favorites");
+        }
+    }
+}

@@ -1,0 +1,126 @@
+@page "/recipes/edit/{id:int}"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject ImageService ImageService
+@inject NavigationManager Navigation
+@inject RecipeStateService StateService
+@inject ILogger<Edit> Logger
+
+<h3>Edit Recipe</h3>
+
+@if (recipe == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <EditForm Model="recipe" OnValidSubmit="HandleSubmit" FormName="editRecipe">
+        <div class="mb-3">
+            <label>Title</label>
+            <input @bind="recipe.Title" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label>Description</label>
+            <textarea @bind="recipe.Description" class="form-control" rows="2"></textarea>
+        </div>
+        <div class="mb-3">
+            <label>Ingredients</label>
+            <textarea @bind="recipe.Ingredients" class="form-control" rows="5"></textarea>
+        </div>
+        <div class="mb-3">
+            <label>Instructions</label>
+            <textarea @bind="recipe.Instructions" class="form-control" rows="5"></textarea>
+        </div>
+        <div class="mb-3">
+            <label>Cooking Time (minutes)</label>
+            <input type="number" @bind="recipe.CookingTimeMinutes" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label>Current Image</label><br />
+            @if (!string.IsNullOrEmpty(recipe.ImageUrl))
+            {
+                <img src="@recipe.ImageUrl" style="max-height: 100px;" />
+                <button type="button" class="btn btn-sm btn-danger ms-2" @onclick="RemoveImage">Remove</button>
+            }
+            <InputFile OnChange="OnImageSelected" />
+        </div>
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a href="/recipes/@recipe.Id" class="btn btn-secondary">Cancel</a>
+        <button type="button" class="btn btn-danger" @onclick="DeleteRecipe">Delete</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Recipe? recipe;
+    private IBrowserFile? newImage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        using var db = await DbFactory.CreateDbContextAsync();
+        recipe = await db.Recipes.FindAsync(Id);
+        if (recipe == null)
+            Logger.LogWarning("Recipe with ID {Id} not found", Id);
+    }
+
+    private async Task OnImageSelected(InputFileChangeEventArgs e)
+    {
+        newImage = e.File;
+    }
+
+    private async Task RemoveImage()
+    {
+        if (!string.IsNullOrEmpty(recipe?.ImageUrl))
+        {
+            ImageService.DeleteImage(recipe.ImageUrl);
+            recipe.ImageUrl = null;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            if (newImage != null)
+            {
+                if (!string.IsNullOrEmpty(recipe?.ImageUrl))
+                    ImageService.DeleteImage(recipe.ImageUrl);
+                recipe!.ImageUrl = await ImageService.SaveImageAsync(newImage);
+            }
+
+            using var db = await DbFactory.CreateDbContextAsync();
+            db.Update(recipe!);
+            await db.SaveChangesAsync();
+
+            Logger.LogInformation("Recipe updated successfully");
+
+            StateService.NotifyStateChanged();
+            Navigation.NavigateTo("/recipes", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating recipe");
+        }
+    }
+
+    private async Task DeleteRecipe()
+    {
+        if (recipe != null)
+        {
+            try
+            {
+                ImageService.DeleteImage(recipe.ImageUrl);
+                using var db = await DbFactory.CreateDbContextAsync();
+                db.Recipes.Remove(recipe);
+                await db.SaveChangesAsync();
+
+                StateService.NotifyStateChanged();
+                Navigation.NavigateTo("/recipes", forceLoad: true);
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error deleting recipe");
+            }
+        }
+    }
+}

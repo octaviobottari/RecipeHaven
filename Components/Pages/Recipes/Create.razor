@@ -1,0 +1,82 @@
+@page "/recipes/create"
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject ImageService ImageService
+@inject NavigationManager Navigation
+@inject RecipeStateService StateService
+@inject ILogger<Create> Logger
+
+<h3>Create New Recipe</h3>
+
+<EditForm Model="newRecipe" OnValidSubmit="HandleSubmit" FormName="createRecipe">
+    <div class="mb-3">
+        <label>Title</label>
+        <input @bind="newRecipe.Title" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Description</label>
+        <textarea @bind="newRecipe.Description" class="form-control" rows="2"></textarea>
+    </div>
+    <div class="mb-3">
+        <label>Ingredients (one per line)</label>
+        <textarea @bind="newRecipe.Ingredients" class="form-control" rows="5"></textarea>
+    </div>
+    <div class="mb-3">
+        <label>Instructions (one step per line)</label>
+        <textarea @bind="newRecipe.Instructions" class="form-control" rows="5"></textarea>
+    </div>
+    <div class="mb-3">
+        <label>Cooking Time (minutes)</label>
+        <input type="number" @bind="newRecipe.CookingTimeMinutes" class="form-control" />
+    </div>
+    <div class="mb-3">
+        <label>Image</label>
+        <InputFile OnChange="OnImageSelected" />
+        @if (previewUrl != null)
+        {
+            <img src="@previewUrl" class="mt-2" style="max-height: 150px;" />
+        }
+    </div>
+    <button type="submit" class="btn btn-success">Create</button>
+    <a href="/recipes" class="btn btn-secondary">Cancel</a>
+</EditForm>
+
+@code {
+    private Recipe newRecipe = new();
+    private IBrowserFile? selectedImage;
+    private string? previewUrl;
+
+    private async Task OnImageSelected(InputFileChangeEventArgs e)
+    {
+        selectedImage = e.File;
+        var buffer = new byte[selectedImage.Size];
+        await selectedImage.OpenReadStream().ReadAsync(buffer);
+        previewUrl = $"data:image/png;base64,{Convert.ToBase64String(buffer)}";
+    }
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            Logger.LogInformation("Creating recipe...");
+
+            if (selectedImage != null)
+                newRecipe.ImageUrl = await ImageService.SaveImageAsync(selectedImage);
+
+            newRecipe.CreatedByUserId = 1;
+            newRecipe.CreatedAt = DateTime.UtcNow;
+
+            using var db = await DbFactory.CreateDbContextAsync();
+            db.Recipes.Add(newRecipe);
+            await db.SaveChangesAsync();
+
+            Logger.LogInformation("Recipe created with ID {Id}", newRecipe.Id);
+
+            StateService.NotifyStateChanged();                // notificar a Index
+            Navigation.NavigateTo("/recipes", forceLoad: true); // recarga completa
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating recipe");
+        }
+    }
+}

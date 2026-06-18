@@ -1,0 +1,90 @@
+@page "/recipes"
+@using Microsoft.EntityFrameworkCore
+@inject IDbContextFactory<ApplicationDbContext> DbFactory
+@inject RecipeStateService StateService
+@inject ILogger<Index> Logger
+@implements IDisposable
+
+<h3>All Recipes (@(recipes?.Count ?? 0))</h3>
+
+<div class="mb-3">
+    <input type="text" @oninput="OnSearch" class="form-control" placeholder="Search by title..." />
+</div>
+
+@if (recipes == null)
+{
+    <p>Loading...</p>
+}
+else if (!recipes.Any())
+{
+    <p>No recipes found. <a href="/recipes/create">Create one now!</a></p>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        @foreach (var recipe in recipes)
+        {
+            <div class="col">
+                <div class="card h-100">
+                    @if (!string.IsNullOrEmpty(recipe.ImageUrl))
+                    {
+                        <img src="@recipe.ImageUrl" class="card-img-top" style="height: 200px; object-fit: cover;" />
+                    }
+                    <div class="card-body">
+                        <h5 class="card-title">@recipe.Title</h5>
+                        <p class="card-text">@recipe.Description</p>
+                        <small>⏱️ @recipe.CookingTimeMinutes min</small>
+                    </div>
+                    <div class="card-footer">
+                        <a href="/recipes/@recipe.Id" class="btn btn-primary btn-sm">View</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<Recipe>? recipes;
+    private string searchTerm = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        StateService.OnChange += StateHasChanged; // suscribirse
+        await LoadRecipes();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadRecipes();
+    }
+
+    private async Task OnSearch(ChangeEventArgs e)
+    {
+        searchTerm = e.Value?.ToString() ?? "";
+        await LoadRecipes();
+    }
+
+    private async Task LoadRecipes()
+    {
+        try
+        {
+            using var db = await DbFactory.CreateDbContextAsync();
+            var query = db.Recipes.AsQueryable();
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+                query = query.Where(r => r.Title.Contains(searchTerm));
+            recipes = await query.OrderByDescending(r => r.CreatedAt).ToListAsync();
+            StateService.UpdateRecipes(recipes!);
+            Logger.LogInformation("Loaded {Count} recipes", recipes?.Count ?? 0);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading recipes");
+        }
+    }
+
+    public void Dispose()
+    {
+        StateService.OnChange -= StateHasChanged; // desuscribirse
+    }
+}
