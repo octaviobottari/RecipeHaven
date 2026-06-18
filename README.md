@@ -1,33 +1,36 @@
-# RecipeHaven
+# Recipe Haven - Recipe Sharing Community
 
-Aplicación web para gestionar recetas (Proyecto personal/curso).
+## Description
+Recipe Haven is a web application that allows users to share, discover, and organize recipes in a community setting.
 
-## Resumen
-Proyecto ASP.NET (Blazor) que permite crear, editar y listar recetas.
+## Features
+- ✅ Create, Read, Edit, Delete recipes
+- ✅ Upload images for recipes
+- ✅ Search recipes by title
+- ✅ Comment system
+- ✅ Rating system (1-5 stars)
+- ✅ Favorites (save recipes)
+- ✅ Responsive interface with Bootstrap
 
-## Requisitos
-- .NET 8 SDK (o la versión usada por el proyecto)
-- Navegador moderno
+## Technologies
+- Blazor Server (.NET 10)
+- Entity Framework Core
+- SQLite
+- Bootstrap 5
 
-## Ejecutar localmente
-1. Abrir una terminal en la carpeta del proyecto:
+## Installation
+1. Clone the repository
+2. `dotnet restore`
+3. `dotnet ef migrations add InitialCreate`
+4. `dotnet ef database update`
+5. `dotnet run`
 
-```powershell
-cd "C:\Users\octav\OneDrive\Documents\CSE325\RecipeHaven"
-```
+## Demo Video
+https://www.loom.com/share/02bc598916ad4b1c8d8d12898f41b6a2
 
-2. Ejecutar la aplicación:
+## Team Members
+- Octavio Bottari
 
-```powershell
-dotnet run
-```
-
-3. Abrir el navegador en la URL indicada por `dotnet run` (por defecto `https://localhost:5143`).
-
-## Notas
-- Este README fue añadido y empujado al repositorio remoto en GitHub.
-- Para contribuciones, crear ramas y enviar pull requests.
-
----
-
-Hecho por Octavio — rápido README de inicio.
+## Links
+- GitHub: https://github.com/octaviobottari/RecipeHaven
+- Trello: https://trello.com/invite/b/6a0e395044639132a4e560cb/ATTI6e0d592ff75c81107b777795e2dcb63531967279/cse325-team-activity
