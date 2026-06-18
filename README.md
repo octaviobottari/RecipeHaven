@@ -26,7 +26,7 @@ Recipe Haven is a web application that allows users to share, discover, and orga
 5. `dotnet run`
 
 ## Demo Video
-[Link to your presentation video]
+
 
 ## Team Members
 - Octavio Bottari
